@@ -1,103 +1,73 @@
-import Image from "next/image";
+import { StackedBarByWeek } from "@/components/charts/StackedBarByWeek";
+import { Card } from "@/components/ui/Card";
+import { DataQualityPanel } from "@/components/ui/DataQualityPanel";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { WeeklyStageTable } from "@/components/ui/WeeklyStageTable";
+import { appConfig } from "@/config/app.config";
+import { getDataSource } from "@/lib/data";
+import { metrics, type MetricDef } from "@/lib/metrics/registry";
+import { addDays, countByWeekAndStage, rangeOfLeads } from "@/lib/metrics/weeks";
 
-export default function Home() {
+export const revalidate = 60;
+
+const longDate = (d: string) =>
+  new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+export default async function DashboardPage() {
+  const ds = getDataSource();
+  const [{ leads, quality }, adSpend] = await Promise.all([ds.getLeads(), ds.getAdSpend()]);
+
+  const range = rangeOfLeads(leads);
+  const rows = range ? countByWeekAndStage(leads, range) : [];
+  const ctx = range ? { leads, adSpend, range } : null;
+  const kpis: MetricDef[] = [metrics.totalLeads, metrics.hireRate, metrics.adSpend, metrics.costPerLead, metrics.costPerHire];
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Recruiting Pipeline</h1>
+          <p className="mt-0.5 text-sm text-ink-2">
+            {range
+              ? `${longDate(range.from)} – ${longDate(addDays(range.to, 6))}`
+              : "No leads yet"}
+            {" · "}weeks start Monday (ET)
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <span className="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-2">Source: {ds.name}</span>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {kpis.map((m, i) => (
+          <KpiCard
+            key={m.id}
+            metric={m}
+            value={ctx ? m.compute(ctx) : null}
+            note={ctx ? m.note?.(ctx) : null}
+            className={i === 0 ? "col-span-2 sm:col-span-1" : ""} />
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card
+          title="Leads by stage, week by week"
+          subtitle="Each lead counted once, in the week it was created, at its current stage."
+          className="min-w-0 lg:col-span-2"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          <StackedBarByWeek rows={rows} />
+        </Card>
+        <Card title="Data quality" subtitle="How raw sheet rows became clean leads.">
+          <DataQualityPanel quality={quality} />
+        </Card>
+      </div>
+
+      <Card title="Weekly breakdown" subtitle="Same numbers as the chart.">
+        <WeeklyStageTable rows={rows} />
+      </Card>
+
+      <footer className="pb-4 text-xs text-muted">
+        Data refreshes every {appConfig.revalidateSeconds}s. Only aggregated, de-identified numbers are sent to the browser.
       </footer>
-    </div>
+    </main>
   );
 }

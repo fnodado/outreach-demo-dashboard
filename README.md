@@ -1,5 +1,11 @@
 # Recruiting Pipeline Dashboard
 
+Live demo: https://outreach-pipeline-demo.vercel.app
+
+![Recruiting Pipeline dashboard: KPI cards, weekly leads-by-stage chart, data-quality panel, and weekly breakdown table](docs/screenshot.png)
+
+Built with Claude Code (AI-assisted, reviewed and tested)
+
 A mobile-first dashboard for a recruiting agency that staffs smart home sales teams. It reads a messy Google Sheet of leads, cleans it with explicit, tested rules, and shows weekly pipeline numbers that match the client's own **Weekly Stats** tab exactly.
 
 **What's on the page:** KPI cards (total leads, hire rate, ad spend, cost per lead, cost per hire), a stacked bar chart and table of leads by stage week by week, and a data-quality panel that shows how raw rows became clean leads.
